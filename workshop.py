@@ -233,15 +233,22 @@ def main(argv):
         saved_data['plugins'] = dict()
         error, plugins_info = get_plugins_info(plugins_id_list)
     if error == None:
-        while len(plugins_info) > 0:
+        num_download_failures = 0
+        while len(plugins_info) > 0 and num_download_failures < 25:
             error, plugins_info, succeed_temp = download_plugins(output_dir, plugins_info, old_plugins)
             saved_data['plugins'].update(succeed_temp)
             file = open(save_file, 'w')
             file.write(json.dumps(saved_data, indent=4))
             file.close()
             if error > 0:
-                print("Some download failed, retrying in " + str(sleep) + " seconds")
+                print(str(len(plugins_info)) + "plugins failed to download, retrying in " + str(sleep) + " seconds")
                 time.sleep(sleep)
+                num_download_failures += 1
+            else:
+                # clear the counter
+                num_download_failures = 0
+        if num_download_failures:
+            print('Gave up on downloading all plugins after retrying 25 times, blame Valve')
 
 if __name__ == "__main__":
     main(sys.argv)
