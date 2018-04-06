@@ -8,6 +8,14 @@ from urllib.error import HTTPError, URLError
 import json
 import time
 
+def safe_print(*objects, errors = 'ignore', **kwargs):
+    '''
+    I really don't want to have to bother with fixing up all my texts when printing, so here's
+    an ascii-only print function
+    '''
+    print( *(str(t).encode('ascii', errors = errors).decode('ascii') for t in objects), **kwargs)
+
+
 def usage(cmd, exit):
     print ("usge: " + cmd + "[-o <output_dir>] [<collection_id>]..." \
             "<collection_id>")
@@ -38,12 +46,13 @@ def download_plugins (output_dir, plugins, old_plugins):
     error = 0
     for plugin in plugins:
         if 'file_url' in plugin:
+            plugin_display_name = '"{title}" ({publishedfileid}.vpk)'.format(**plugin)
             # if plugin is downloadable
             if plugin['publishedfileid'] in old_plugins and \
             old_plugins[plugin['publishedfileid']]['time_updated'] == \
             plugin['time_updated']:
                 # if plugin is already up-to-date just reccord as succeed
-                print("Plugin " + plugin['publishedfileid'] + \
+                safe_print("Plugin " + plugin_display_name + \
                         " already up-to-date")
                 succeed[plugin['publishedfileid']] = dict((k,plugin[k]) \
                     for k in ('title', 'time_updated') \
@@ -52,7 +61,7 @@ def download_plugins (output_dir, plugins, old_plugins):
                 # if plugin not up-to-date or never download
                 try:
                     name = plugin['publishedfileid'] + ".vpk"
-                    print("Downloading " + name)
+                    safe_print("Downloading " + plugin_display_name)
                     path = os.path.join(output_dir, name)
                     urllib.request.urlretrieve(plugin['file_url'], path)
                     print("Downloading complete")
@@ -61,8 +70,8 @@ def download_plugins (output_dir, plugins, old_plugins):
                         if k in plugin)
                 except HTTPError as e:
                     # some time the request fail, too much spam ?
-                    print("Server return " + str(e.code) + " error on " + \
-                        plugin['publishedfileid'] + " plugin")
+                    safe_print("Server return " + str(e.code) + " error on " + \
+                        plugin_display_name)
                     fail.append(plugin)
                     error += 1
     return error, fail, succeed
