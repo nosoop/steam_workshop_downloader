@@ -241,14 +241,18 @@ def main(argv):
             file.write(json.dumps(saved_data, indent=4))
             file.close()
             if error > 0:
-                print(str(len(plugins_info)) + "plugins failed to download, retrying in " + str(sleep) + " seconds")
+                print(str(len(plugins_info)) + " plugins failed to download, retrying in " + str(sleep) + " seconds")
                 time.sleep(sleep)
                 num_download_failures += 1
+                print('--------------------------------------------------')
+                print('Failed downloads (attempt #{} / 25)'.format(num_download_failures))
             else:
                 # clear the counter
                 num_download_failures = 0
         if num_download_failures:
-            print('Gave up on downloading all plugins after retrying 25 times, blame Valve')
+            print('Gave up on downloading all plugins, blame Valve')
+        else:
+            print('Downloaded all plugins successfully')
 
 if __name__ == "__main__":
     main(sys.argv)
