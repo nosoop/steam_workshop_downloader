@@ -17,7 +17,7 @@ def safe_print(*objects, errors = 'ignore', **kwargs):
 
 
 def usage(cmd, exit):
-    print ("usge: " + cmd + "[-o <output_dir>] [<collection_id>]..." \
+    print ("usage: " + cmd + "[-o <output_dir>] [<collection_id>]..." \
             "<collection_id>")
     sys.exit(exit)
 
@@ -192,11 +192,11 @@ def init(argv):
     try:
         opts, args = getopt.getopt(argv[1:],"ho:")
     except getopt.GetoptError:
-        usge(argv[0], 2)
+        usage(argv[0], 2)
     else:
         for opt, arg in opts:
             if opt == 'h':
-                usge(argv[0], 0)
+                usage(argv[0], 0)
             elif opt == '-o':
                 output_dir = os.path.abspath(arg)
                 save_file = os.path.join(output_dir, "addons.lst")
