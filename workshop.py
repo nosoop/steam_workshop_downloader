@@ -206,6 +206,43 @@ def init(argv):
         collections_id_list = argv[len(opts) * 2 + 1:]
     return error, output_dir, collections_id_list, save_file
 
+"""Return list of deprecated plugins
+Will return:
+    - a list:
+        - empty if no deprecated plugins found
+        - containing deprecated plugins
+Return list(deprecated_plugins)
+"""
+def plugins_to_remove(plugins_id_list, old_plugins):
+    deprecated_plugins = []
+    for plugin in old_plugins:
+        if plugin not in plugins_id_list:
+            deprecated_plugins.append(plugin)
+    return deprecated_plugins
+
+
+"""Removes old plugins and modifies list
+Will return:
+    - a dictionary item:
+        - saved_data (without the deprecated plugins)
+Return dict(deprecated_plugins)
+"""
+def deletePlugins(deprecated_plugins, output_dir, saved_data):
+    for plugin in deprecated_plugins:
+        # remove plugins from server
+        plugin_path = os.path.join(output_dir, plugin + ".vpk")
+        if os.path.exists(plugin_path):
+            os.remove(plugin_path)
+        # remove from the dictionary (addons.lst)
+        del saved_data['plugins'][plugin]
+    return saved_data
+
+def print_deprecated_info(deprecated_plugin_info):
+    for plugin in deprecated_plugin_info:
+        if 'file_url' in plugin:
+            plugin_display_name = '"{title}" ({publishedfileid}.vpk)'.format(**plugin)
+            safe_print("\t" + plugin_display_name)
+
 def main(argv):
     sleep = 15
     error, output_dir, collections_id_list, save_file = init(argv)
@@ -226,6 +263,19 @@ def main(argv):
         saved_data['collections'] = valid_collections
         if 'plugins' in saved_data:
             old_plugins = saved_data['plugins']
+            
+            # plugin got removed from workshop collections - delete it
+            deprecated_plugins = plugins_to_remove(plugins_id_list, old_plugins)
+            deprecated_plugins = list(set(deprecated_plugins))
+            if len(deprecated_plugins) > 0:
+                print("\nSome plugins found which are no longer in workshop collection(s).")
+                print("Removing deprecated plugins:\n")
+                error, deprecated_plugin_info = get_plugins_info(deprecated_plugins)
+                if error == None:
+                    print_deprecated_info(deprecated_plugin_info)
+                    # remove plugins from server and resave dictionary to reflect change
+                    saved_data = deletePlugins(deprecated_plugins, output_dir, saved_data)
+                    
             plugins_id_list += old_plugins.keys()
             plugins_id_list = list(set(plugins_id_list))
         else:
@@ -234,6 +284,7 @@ def main(argv):
         error, plugins_info = get_plugins_info(plugins_id_list)
     if error == None:
         num_download_failures = 0
+        print("\n")
         while len(plugins_info) > 0 and num_download_failures < 25:
             error, plugins_info, succeed_temp = download_plugins(output_dir, plugins_info, old_plugins)
             saved_data['plugins'].update(succeed_temp)
